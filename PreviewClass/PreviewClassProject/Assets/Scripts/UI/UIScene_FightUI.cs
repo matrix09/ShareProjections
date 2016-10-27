@@ -4,8 +4,231 @@ using System.Collections.Generic;
 
 public class UIScene_FightUI : MonoBehaviour {
 
+
+    #region  摇杆
+    public GameObject NaviKeyObj;
+    public GameObject LimitArea;
+
+    private Vector3 vOrigPos;
+    //private Vector3 vPressPos;
+    private Transform t;
+    private Camera cam;
+    Vector3 newPos = Vector3.zero;
+    [HideInInspector]
+    public float dir;
+    [HideInInspector]
+    public Vector3 vDir = Vector3.zero;
+    [HideInInspector]
+    public Vector3 speed;
+    Vector3 v;
+    float z = 0f;
+    float tangant = 0f;
+    float fRadius = 0.2f;
+    void InitJoyStick ()
+    {
+        t = NaviKeyObj.transform;
+        vOrigPos = t.position;
+
+        NaviKeyObj.SetActive(false);
+    }
+
+    void UpdateJoyStick ()
+    {
+        if (null == cam)
+        {
+            cam = NGUITools.FindCameraForLayer(gameObject.layer);
+        }
+
+        if (Application.platform == RuntimePlatform.Android || Application.platform == RuntimePlatform.IPhonePlayer)
+        {
+            TouchNavigation();
+        }
+        else
+        {
+            MouseNavigation();
+        }
+    }
+
+    void PressObj()
+    {
+        NaviKeyObj.SetActive(true);
+        dir = 0f;
+        t.position = newPos;
+
+        //GlobeHelper.CurScene.CurMajor.BIsKeyDown = true;
+        Controller.Instance.m_blueController.m_bIsKeyDown = true;
+    }
+
+    void DragObj()
+    {
+        vDir = (newPos - vOrigPos).normalized;
+
+        if ((newPos - vOrigPos).magnitude > fRadius)
+        {
+
+            t.position = vOrigPos + fRadius * vDir;
+        }
+        else
+        {
+            t.position = newPos;
+        }
+
+        speed = (t.position - vOrigPos).normalized;
+        if (newPos.y != vOrigPos.y)
+        {
+            tangant = (newPos.x - vOrigPos.x) / (newPos.y - vOrigPos.y);
+            dir = Mathf.Rad2Deg * Mathf.Atan(tangant);
+        }
+        else
+        {
+            if (newPos.x < vOrigPos.x)
+            {
+                dir = 270f;
+            }
+            else
+            {
+                dir = 90f;
+            }
+        }
+
+        if (newPos.y < vOrigPos.y)
+        {
+            float temp = 180 - (Mathf.Rad2Deg * Mathf.Atan(0 - tangant));
+            dir = temp;
+        }
+    }
+
+    void ReleaseObj()
+    {
+        t.position = vOrigPos;
+        NaviKeyObj.SetActive(false);
+        dir = 0f;
+        //GlobeHelper.CurScene.CurMajor.BIsKeyDown = false;
+        Controller.Instance.m_blueController.m_bIsKeyDown = false;
+    }
+
+    void HandleTouchBegin(Touch touch)
+    {
+        if ((newPos - vOrigPos).magnitude <= fRadius)
+        {
+            dFingerPress[touch.fingerId] = new Vector2(vOrigPos.x, vOrigPos.y);
+            PressObj();
+        }
+    }
+
+    void ResetData(Touch touch)
+    {
+        dFingerPress.Clear();
+        t.position = vOrigPos;
+        NaviKeyObj.SetActive(false);
+        dir = 0f;
+    }
+
+    void HandleTouchEnd(Touch touch)
+    {
+        if (dFingerPress.ContainsKey(touch.fingerId))
+        {
+            dFingerPress.Remove(touch.fingerId);
+            ReleaseObj();
+        }
+    }
+
+    void HandleTouchMoved(Touch touch)
+    {
+        if (dFingerPress.ContainsKey(touch.fingerId))
+        {
+            DragObj();
+        }
+    }
+
+    void MouseNavigation()
+    {
+        v = Input.mousePosition;
+
+        z = 0 - cam.transform.position.z;
+
+        newPos = cam.ScreenToWorldPoint(new Vector3(v.x, v.y, z));
+
+        //if (GlobeHelper.CurScene.CurMajor == null)
+       //     return;
+
+        if (Controller.Instance.m_blueController.m_bIsKeyDown == false && true == Input.GetMouseButtonDown(0))
+        {
+
+            if ((newPos - vOrigPos).magnitude <= fRadius)
+            {
+
+                PressObj();
+            }
+
+        }
+        else if (Controller.Instance.m_blueController.m_bIsKeyDown == true && true == Input.GetMouseButton(0))
+        {
+            DragObj();
+        }
+        else if (Controller.Instance.m_blueController.m_bIsKeyDown == true && true == Input.GetMouseButtonUp(0))
+        {
+
+            ReleaseObj();
+        }
+    }
+
+    private readonly Dictionary<int, Vector2> dFingerPress = new Dictionary<int, Vector2>();
+
+    void TouchNavigation()
+    {
+
+        for (int i = 0; i < Input.touches.Length; i++)
+        {
+            Touch touch = Input.touches[i];
+
+            v = touch.position;
+
+            z = 0 - cam.transform.position.z;
+
+            newPos = cam.ScreenToWorldPoint(new Vector3(v.x, v.y, z));
+
+            switch (touch.phase)
+            {
+                case TouchPhase.Began:
+                    {
+                        HandleTouchBegin(touch);
+                        break;
+                    }
+                case TouchPhase.Moved:
+                    {
+                        HandleTouchMoved(touch);
+                        break;
+                    }
+                //A finger is touching the screen but hasn't moved since the last frame.
+                case TouchPhase.Stationary:
+                    {
+                        break;
+                    }
+                //The system cancel tracking for the touch, as when (for example) the user puts the device to her face 
+                //or more than five touches happened simultaneously. This is the final phase of a touch.
+                case TouchPhase.Canceled:
+                    {
+                        ResetData(touch);
+                        break;
+                    }
+                case TouchPhase.Ended:
+                    {
+                        HandleTouchEnd(touch);
+                        break;
+                    }
+            }//----end switch
+
+        }//----end for cycle
+    }
+
+    #endregion
+
     // Use this for initialization
-	void Start () {
+    void Start () {
+
+        //initialize joy stick
+        InitJoyStick();
 
         //initialize Time Counter
         InitTimeCounter();
@@ -20,6 +243,8 @@ public class UIScene_FightUI : MonoBehaviour {
     // Update is called once per frame
     void Update()
     {
+
+        UpdateJoyStick();
 
         if (!UpDateTimeCounter())
         {
@@ -117,19 +342,37 @@ public class UIScene_FightUI : MonoBehaviour {
                 {
                     UIEventListener.Get(bo.gameObject).onClick = PressEndGameEvent;
                 }
-                //else if (bo.gameObject.name == "StartBall")
-                //{
-                //    UIEventListener.Get(bo.gameObject).onClick = StartBall;
-                //}
-                //else if (bo.gameObject.name == "EndBall")
-                //{
-                //    UIEventListener.Get(bo.gameObject).onClick = EndBall;
-                //}
+                else if (bo.gameObject.name == "Jump")
+                {
+                    UIEventListener.Get(bo.gameObject).onClick = PressJumpEvent;
+                }
+                else if (bo.gameObject.name == "Fire")
+                {
+                    UIEventListener.Get(bo.gameObject).onClick = PressFireEvent;
+                }
             }
         }
     }
 
 
+    #endregion
+
+
+    #region fire 
+
+    void PressFireEvent (GameObject obj)
+    {
+        Controller.Instance.m_blueController.HandleFireEvent();
+    }
+
+    #endregion
+
+    #region jump
+    void PressJumpEvent(GameObject obj)
+    {
+        if(Controller.Instance.m_blueController.CanJump ())
+          Controller.Instance.m_blueController.HandleJumpEvent();
+    }
     #endregion
 
 }

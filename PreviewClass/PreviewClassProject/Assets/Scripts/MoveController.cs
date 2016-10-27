@@ -19,6 +19,9 @@ public class MoveController : MonoBehaviour
 
 	public GameObject m_GunPortObj;
 
+    [HideInInspector]
+    public bool m_bIsKeyDown = false;
+
 	private Vector3 m_ModernPos;
 
 	private Quaternion m_ModernRot;
@@ -61,32 +64,55 @@ public class MoveController : MonoBehaviour
 
 	}
 
+    public void HandleJumpEvent ()
+    {
+        m_bJump = true;
+        rb.AddForce(new Vector3(0f, 300f, 0f));
+    }
+
+    public bool CanJump()
+    {
+        bool canjump = (m_bJump == false) && ((transform.localPosition.y - 0) <= 1f);
+        return canjump;
+    }
+
 	void HandleJump ()
 	{
-		if ((m_bJump == false) && ((transform.localPosition.y - 0) <= 1f)) {
 
-            //
-            if(PlayerType == 0)
+        if(CanJump())
+        {
+            if (PlayerType == 0)
             {
-                if((Input.GetKeyDown(KeyCode.Space)))
+                if ((Input.GetKeyDown(KeyCode.Space)))
                 {
-                    m_bJump = true;
-                    rb.AddForce(new Vector3(0f, 300f, 0f));
+                    HandleJumpEvent();
                 }
             }
             else
             {
                 if ((Input.GetKeyDown(KeyCode.Alpha0)))
                 {
-                    m_bJump = true;
-                    rb.AddForce(new Vector3(0f, 300f, 0f));
+                    HandleJumpEvent();
                 }
             }
-         
+        }
 
-		}
+	
 	}
 		
+    public void HandleFireEvent ()
+    {
+        int score = 0;
+        if ((score = int.Parse(Controller.Instance.m_FightUIScene.BlueTeam.text)) > 0)
+        {
+            score--;
+            Controller.Instance.m_FightUIScene.BlueTeam.text = score.ToString();
+            GameObject obj = Instantiate(Resources.Load("Prefabs/Bullet")) as GameObject;
+            obj.transform.parent = null;
+            BulletTrace bt = obj.GetComponent<BulletTrace>();
+            bt.OnStart(m_GunPortObj.transform.position, transform.rotation);
+        }
+    }
 	/*
 	 * 
 	 * shoot
@@ -101,24 +127,17 @@ public class MoveController : MonoBehaviour
 			m_bJump = false;
 			return;
 		}
-        int score = 0;
+       
         if (PlayerType == 0)
         {
             if (Input.GetKeyDown(KeyCode.Alpha1))
             {
-                if((score = int.Parse(Controller.Instance.m_FightUIScene.BlueTeam.text)) > 0)
-                {
-                    score--;
-                    Controller.Instance.m_FightUIScene.BlueTeam.text = score.ToString();
-                    GameObject obj = Instantiate(Resources.Load("Prefabs/Bullet")) as GameObject;
-                    obj.transform.parent = null;
-                    BulletTrace bt = obj.GetComponent<BulletTrace>();
-                    bt.OnStart(m_GunPortObj.transform.position, transform.rotation);
-                }
+                HandleFireEvent();
             }
         }
         else
         {
+            int score = 0;
             if (Input.GetKeyDown(KeyCode.Alpha2))
             {
                 if ((score = int.Parse(Controller.Instance.m_FightUIScene.RedTeam.text)) > 0)
@@ -150,16 +169,28 @@ public class MoveController : MonoBehaviour
         {
             rot = Input.GetAxis("Horizontal1");
         }
-		 
 
-		TempAngle += rot * m_fRotSpeed;
+        if(m_bIsKeyDown == true)
+        {
+            rot = Controller.Instance.m_FightUIScene.dir;
+            m_ModernRot = Quaternion.AngleAxis(rot, Vector3.up);
+            TempAngle = rot;
+        }
+        else
+        {
+            TempAngle += rot * m_fRotSpeed;
 
-		m_ModernRot = Quaternion.Euler (0f, TempAngle, 0f);
 
-		transform.localRotation = Quaternion.Lerp (transform.localRotation, m_ModernRot, m_fRotSmooth * Time.deltaTime);
+            m_ModernRot = Quaternion.Euler(0f, TempAngle, 0f);
+
+           
+        }
+
+        transform.localRotation = Quaternion.Lerp(transform.localRotation, m_ModernRot, m_fRotSmooth * Time.deltaTime);
 
 
-	}
+
+    }
 
 	void UpdatePos ()
 	{
@@ -177,6 +208,12 @@ public class MoveController : MonoBehaviour
         {
             pos = Input.GetAxis("Vertical1");
         }
+
+        if(m_bIsKeyDown)
+        {
+            pos = 0.6f;
+        }
+
 
 		if (pos != 0) {
 			transform.Translate (new Vector3 (0f, 0f, pos * m_fMoveSpeed * Time.deltaTime));

@@ -51,6 +51,7 @@ public class UIScene_FightUI : MonoBehaviour {
 
     void PressObj()
     {
+        //Debug.Log("PressObj ");
         NaviKeyObj.SetActive(true);
         dir = 0f;
         t.position = newPos;
@@ -109,10 +110,15 @@ public class UIScene_FightUI : MonoBehaviour {
 
     void HandleTouchBegin(Touch touch)
     {
+        //Debug.Log("HandleTouchBegin ");
         if ((newPos - vOrigPos).magnitude <= fRadius)
         {
             dFingerPress[touch.fingerId] = new Vector2(vOrigPos.x, vOrigPos.y);
             PressObj();
+        }
+        else
+        {
+           // Debug.Log("HandleTouchBegin radius = " + (newPos - vOrigPos).magnitude);
         }
     }
 

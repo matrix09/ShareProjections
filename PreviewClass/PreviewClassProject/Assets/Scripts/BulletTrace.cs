@@ -50,7 +50,13 @@ public class BulletTrace : MonoBehaviour
 
             Controller.Instance.m_redController.RB.AddForce(transform.rotation.eulerAngles * 0.5f);
 
+            Controller.Instance.m_CameraController.m_bIsHit = true;
+
+
             Destroy(gameObject);
+
+
+
 
         }
     }

@@ -25,5 +25,43 @@ public class CameraController : MonoBehaviour {
         transform.rotation = Quaternion.Lerp(transform.rotation, tmp, m_fRotSmooth * Time.deltaTime);
 
 
+        CamHitAnim();
+
     }
+
+    #region 子弹碰撞UI扭曲
+    public bool m_bIsHit = false;
+    private CustomImageEffect m_CamCustomImageEffect;
+    bool m_IsIncrease = true;
+    float m_Step = 0f;
+    public void CamHitAnim ()
+    {
+        if(m_bIsHit)
+        {
+            if(null == m_CamCustomImageEffect)
+            {
+                m_CamCustomImageEffect = gameObject.GetComponent<CustomImageEffect>();
+            }
+
+           if(m_IsIncrease)
+                m_Step += 0.005f;
+           else
+                m_Step -= 0.005f;
+            m_CamCustomImageEffect.EffectMaterial.SetFloat("_Magnitude", m_Step);
+            if (m_CamCustomImageEffect.EffectMaterial.GetFloat("_Magnitude") >= 0.1)
+            {
+                m_IsIncrease = false;
+            }
+            else if(m_CamCustomImageEffect.EffectMaterial.GetFloat("_Magnitude") <=0)
+            {
+                m_IsIncrease = true;
+                m_bIsHit = false;
+            }
+
+          
+        }
+    }
+    #endregion
+
+
 }

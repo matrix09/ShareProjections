@@ -15,8 +15,6 @@ public class MoveController : MonoBehaviour
 
 	public float m_fRotSmooth;
 
-	public GameObject m_RootObj;
-
 	public GameObject m_GunPortObj;
 
     [HideInInspector]
